@@ -9,7 +9,7 @@ how to control opponent invalid action.
 ## Usage
 
 1. append Reversi folder to gym/gym/envs/
-2. add registration info for reversi to gym/gym/envs/__init__.py (refer to the end of the file)
+2. add the Registration Info to gym/gym/envs/\__init__.py (added the end of the file)
 
 
 ## Script
