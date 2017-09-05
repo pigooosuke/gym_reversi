@@ -22,7 +22,7 @@ for i_episode in range(20):
         enables = env.enable_to_actions
         # if nothing to do ,select pass
         if len(enables)==0:
-            action = self.board_size**2 + 1
+            action = env.board_size**2 + 1
         # random select (update learning method here)
         else:
             action = random.choice(enables)
