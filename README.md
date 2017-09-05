@@ -2,52 +2,56 @@
 
 This is original "Reversi env" for reinforcement learning.  
 
-## Issues  
-how to control early adaption for learning.  
-how to control opponent invalid action.  
-
 ## Usage
 
-1. append Reversi folder to gym/gym/envs/
-2. add the Registration Info to gym/gym/envs/\__init__.py (added the end of the file)
+1. append Reversi folder to gym/envs/
+2. add the Env Info to gym/envs/\_\_init\_\_.py (refer to the end of the file(\_\_init\_\_.py))
 
 
 ## Script
 
 ```Python
 import gym
+import random
+import numpy as np
 env = gym.make('Reversi8x8-v0')
 env.reset()
 for i_episode in range(20):
     observation = env.reset()
     for t in range(100):
-        env.render()
-        action = env.action_space.sample()
-        print(action)
+        enables = env.enable_to_actions
+        # if nothing to do ,select pass
+        if len(enables)==0:
+            action = 65
+        # random select (customize learning method)
+        else:
+            action = random.choice(enables)
         observation, reward, done, info = env.step(action)
+        env.render()
         if done:
             print("Episode finished after {} timesteps".format(t+1))
-            print(reward)
+            black_score = len(np.where(env.state[0,:,:]==1)[0])
+            print(black_score)
             break
 ```
 
 ```
-   |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
+      1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
 -------------------------------------------------------
-1  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |
+1  |  B  |  B  |  B  |  B  |  B  |  B  |  B  |  B  |
 -------------------------------------------------------
-2  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |
+2  |  B  |  W  |  W  |  B  |  B  |  W  |  W  |  B  |
 -------------------------------------------------------
-3  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |
+3  |  B  |  W  |  W  |  W  |  B  |  B  |  W  |  B  |
 -------------------------------------------------------
-4  |  O  |  O  |  O  |  W  |  B  |  O  |  O  |  O  |
+4  |  B  |  W  |  B  |  W  |  W  |  B  |  B  |  B  |
 -------------------------------------------------------
-5  |  O  |  O  |  O  |  B  |  W  |  O  |  O  |  O  |
+5  |  B  |  W  |  W  |  B  |  W  |  W  |  B  |  B  |
 -------------------------------------------------------
-6  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |
+6  |  B  |  W  |  B  |  W  |  W  |  B  |  W  |  B  |
 -------------------------------------------------------
-7  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |
+7  |  B  |  W  |  B  |  B  |  B  |  B  |  B  |  B  |
 -------------------------------------------------------
-8  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |  O  |
+8  |  B  |  W  |  W  |  W  |  W  |  W  |  W  |  B  |
 -------------------------------------------------------
 ```
