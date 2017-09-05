@@ -22,8 +22,8 @@ for i_episode in range(20):
         enables = env.enable_to_actions
         # if nothing to do ,select pass
         if len(enables)==0:
-            action = 65
-        # random select (customize learning method)
+            action = self.board_size**2 + 1
+        # random select (update learning method here)
         else:
             action = random.choice(enables)
         observation, reward, done, info = env.step(action)
