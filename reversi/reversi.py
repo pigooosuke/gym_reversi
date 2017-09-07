@@ -12,7 +12,7 @@ from gym.utils import seeding
 
 def make_random_policy(np_random):
     def random_policy(state, player_color):
-        possible_places = ReversiEnv.get_enable_to_actions(state, player_color)
+        possible_places = ReversiEnv.get_possible_actions(state, player_color)
         # No places left
         if len(possible_places) == 0:
             return d**2 + 1
@@ -82,16 +82,16 @@ class ReversiEnv(gym.Env):
         return [seed]
 
     def _reset(self):
+        # init board setting
         self.state = np.zeros((3, self.board_size, self.board_size))
         self.state[2, :, :] = 1.0
-        # init board setting
         self.state[2, 3:5, 3:5] = 0
         self.state[0, 4, 3] = 1
         self.state[0, 3, 4] = 1
         self.state[1, 3, 3] = 1
         self.state[1, 4, 4] = 1
         self.to_play = ReversiEnv.BLACK
-        self.enable_to_actions = ReversiEnv.get_enable_to_actions(self.state, self.to_play)
+        self.possible_actions = ReversiEnv.get_possible_actions(self.state, self.to_play)
         self.done = False
 
         # Let the opponent play if it's not the agent's turn
@@ -144,7 +144,7 @@ class ReversiEnv(gym.Env):
                 ReversiEnv.make_place(self.state, a, 1 - self.player_color)
 
 
-        self.enable_to_actions = ReversiEnv.get_enable_to_actions(self.state, self.player_color)
+        self.possible_actions = ReversiEnv.get_possible_actions(self.state, self.player_color)
         reward = ReversiEnv.game_finished(self.state)
         if self.player_color == ReversiEnv.WHITE:
             reward = - reward
@@ -201,7 +201,7 @@ class ReversiEnv(gym.Env):
         return action == board_size ** 2 + 1
 
     @staticmethod
-    def get_enable_to_actions(board, player_color):
+    def get_possible_actions(board, player_color):
         actions=[]
         d = board.shape[-1]
         opponent_color = 1 - player_color

@@ -19,7 +19,7 @@ env.reset()
 for i_episode in range(20):
     observation = env.reset()
     for t in range(100):
-        enables = env.enable_to_actions
+        enables = env.possible_actions
         # if nothing to do ,select pass
         if len(enables)==0:
             action = env.board_size**2 + 1
