@@ -84,12 +84,14 @@ class ReversiEnv(gym.Env):
     def _reset(self):
         # init board setting
         self.state = np.zeros((3, self.board_size, self.board_size))
+        centerL = int(self.board_size/2-1)
+        centerR = int(self.board_size/2)
         self.state[2, :, :] = 1.0
-        self.state[2, 3:5, 3:5] = 0
-        self.state[0, 4, 3] = 1
-        self.state[0, 3, 4] = 1
-        self.state[1, 3, 3] = 1
-        self.state[1, 4, 4] = 1
+        self.state[2, (centerL):(centerR+1), (centerL):(centerR+1)] = 0
+        self.state[0, centerR, centerL] = 1
+        self.state[0, centerL, centerR] = 1
+        self.state[1, centerL, centerL] = 1
+        self.state[1, centerR, centerR] = 1
         self.to_play = ReversiEnv.BLACK
         self.possible_actions = ReversiEnv.get_possible_actions(self.state, self.to_play)
         self.done = False
@@ -227,7 +229,7 @@ class ReversiEnv(gym.Env):
                             nx += dx
                             ny += dy
                         if(n > 0 and board[player_color, nx, ny] == 1):
-                            actions.append(pos_x*8+pos_y)
+                            actions.append(pos_x * d + pos_y)
         if len(actions)==0:
             actions = [d**2 + 1]
         return actions
