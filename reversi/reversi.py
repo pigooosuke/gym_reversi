@@ -65,9 +65,9 @@ class ReversiEnv(gym.Env):
         observation = self.reset()
         self.observation_space = spaces.Box(np.zeros(observation.shape), np.ones(observation.shape))
 
-        self._seed()
+        self.seed()
 
-    def _seed(self, seed=None):
+    def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
 
         # Update the random policy if needed
@@ -81,7 +81,7 @@ class ReversiEnv(gym.Env):
 
         return [seed]
 
-    def _reset(self):
+    def reset(self):
         # init board setting
         self.state = np.zeros((3, self.board_size, self.board_size))
         centerL = int(self.board_size/2-1)
@@ -103,7 +103,7 @@ class ReversiEnv(gym.Env):
             self.to_play = ReversiEnv.WHITE
         return self.state
 
-    def _step(self, action):
+    def step(self, action):
         assert self.to_play == self.player_color
         # If already terminal, then don't do anything
         if self.done:
@@ -159,7 +159,7 @@ class ReversiEnv(gym.Env):
     #     else:
     #         raise error.Error('Unrecognized opponent policy {}'.format(self.opponent))
 
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
         if close:
             return
         board = self.state
