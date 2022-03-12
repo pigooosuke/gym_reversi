@@ -1,17 +1,22 @@
 # openAI-gym Reversi/Othello
 
-This is original "Reversi env" for reinforcement learning.  
+This is original "Reversi env" for reinforcement learning.
+
+## Installation
+
+```sh
+pip install .
+```
 
 ## Usage
-
-1. append Reversi folder to gym/envs/
-2. add the Env Info to gym/envs/\_\_init\_\_.py (refer to the end of the file(\_\_init\_\_.py))
-
+1. Install this package.
+2. Import `gym_reversi`
 
 ## Script
 
 ```Python
 import gym
+import gym_reversi
 import random
 import numpy as np
 env = gym.make('Reversi8x8-v0')
