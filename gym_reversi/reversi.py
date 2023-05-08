@@ -2,68 +2,89 @@
 Game of Reversi
 """
 
-from six import StringIO
+from io import StringIO
 import sys
+
 import gym
 from gym import spaces
 import numpy as np
 from gym import error
 from gym.utils import seeding
 
+
 def make_random_policy(np_random):
     def random_policy(state, player_color):
         possible_places = ReversiEnv.get_possible_actions(state, player_color)
         # No places left
         if len(possible_places) == 0:
-            return d**2 + 1
-        a = np_random.randint(len(possible_places))
+            board_size = state.shape[1]
+            # resign
+            return board_size**2
+            # pass
+            return board_size**2 + 1
+        a = np_random.integers(len(possible_places))
         return possible_places[a]
+
     return random_policy
+
 
 class ReversiEnv(gym.Env):
     """
     Reversi environment. Play against a fixed opponent.
     """
+
     BLACK = 0
     WHITE = 1
-    metadata = {"render.modes": ["ansi","human"]}
+    metadata = {"render.modes": ["ansi", "human"]}
 
-    def __init__(self, player_color, opponent, observation_type, illegal_place_mode, board_size):
+    def __init__(
+        self, player_color, opponent, observation_type, illegal_place_mode, board_size
+    ):
         """
         Args:
             player_color: Stone color for the agent. Either 'black' or 'white'
             opponent: An opponent policy
             observation_type: State encoding
-            illegal_place_mode: What to do when the agent makes an illegal place. Choices: 'raise' or 'lose'
+            illegal_place_mode:
+                What to do when the agent makes an illegal place.
+                Choices: 'raise' or 'lose'
             board_size: size of the Reversi board
         """
-        assert isinstance(board_size, int) and board_size >= 1, 'Invalid board size: {}'.format(board_size)
+        assert (
+            isinstance(board_size, int) and board_size >= 1
+        ), "Invalid board size: {}".format(board_size)
         self.board_size = board_size
 
         colormap = {
-            'black': ReversiEnv.BLACK,
-            'white': ReversiEnv.WHITE,
+            "black": ReversiEnv.BLACK,
+            "white": ReversiEnv.WHITE,
         }
         try:
             self.player_color = colormap[player_color]
         except KeyError:
-            raise error.Error("player_color must be 'black' or 'white', not {}".format(player_color))
+            raise error.Error(
+                "player_color must be 'black' or 'white', not {}".format(player_color)
+            )
 
         self.opponent = opponent
 
-        assert observation_type in ['numpy3c']
+        assert observation_type in ["numpy3c"]
         self.observation_type = observation_type
 
-        assert illegal_place_mode in ['lose', 'raise']
+        assert illegal_place_mode in ["lose", "raise"]
         self.illegal_place_mode = illegal_place_mode
 
-        if self.observation_type != 'numpy3c':
-            raise error.Error('Unsupported observation type: {}'.format(self.observation_type))
+        if self.observation_type != "numpy3c":
+            raise error.Error(
+                "Unsupported observation type: {}".format(self.observation_type)
+            )
 
         # One action for each board position and resign and pass
-        self.action_space = spaces.Discrete(self.board_size ** 2 + 2)
+        self.action_space = spaces.Discrete(self.board_size**2 + 2)
         observation = self.reset()
-        self.observation_space = spaces.Box(np.zeros(observation.shape), np.ones(observation.shape))
+        self.observation_space = spaces.Box(
+            np.zeros(observation.shape), np.ones(observation.shape)
+        )
 
         self.seed()
 
@@ -72,10 +93,12 @@ class ReversiEnv(gym.Env):
 
         # Update the random policy if needed
         if isinstance(self.opponent, str):
-            if self.opponent == 'random':
+            if self.opponent == "random":
                 self.opponent_policy = make_random_policy(self.np_random)
             else:
-                raise error.Error('Unrecognized opponent policy {}'.format(self.opponent))
+                raise error.Error(
+                    "Unrecognized opponent policy {}".format(self.opponent)
+                )
         else:
             self.opponent_policy = self.opponent
 
@@ -84,16 +107,18 @@ class ReversiEnv(gym.Env):
     def reset(self):
         # init board setting
         self.state = np.zeros((3, self.board_size, self.board_size))
-        centerL = int(self.board_size/2-1)
-        centerR = int(self.board_size/2)
+        centerL = int(self.board_size / 2 - 1)
+        centerR = int(self.board_size / 2)
         self.state[2, :, :] = 1.0
-        self.state[2, (centerL):(centerR+1), (centerL):(centerR+1)] = 0
+        self.state[2, (centerL) : (centerR + 1), (centerL) : (centerR + 1)] = 0
         self.state[0, centerR, centerL] = 1
         self.state[0, centerL, centerR] = 1
         self.state[1, centerL, centerL] = 1
         self.state[1, centerR, centerR] = 1
         self.to_play = ReversiEnv.BLACK
-        self.possible_actions = ReversiEnv.get_possible_actions(self.state, self.to_play)
+        self.possible_actions = ReversiEnv.get_possible_actions(
+            self.state, self.to_play
+        )
         self.done = False
 
         # Let the opponent play if it's not the agent's turn
@@ -107,20 +132,24 @@ class ReversiEnv(gym.Env):
         assert self.to_play == self.player_color
         # If already terminal, then don't do anything
         if self.done:
-            return self.state, 0., True, {'state': self.state}
+            return self.state, 0.0, True, {"state": self.state}
         if ReversiEnv.pass_place(self.board_size, action):
             pass
         elif ReversiEnv.resign_place(self.board_size, action):
-            return self.state, -1, True, {'state': self.state}
+            return self.state, -1, True, {"state": self.state}
         elif not ReversiEnv.valid_place(self.state, action, self.player_color):
-            if self.illegal_place_mode == 'raise':
+            if self.illegal_place_mode == "raise":
                 raise
-            elif self.illegal_place_mode == 'lose':
+            elif self.illegal_place_mode == "lose":
                 # Automatic loss on illegal place
                 self.done = True
-                return self.state, -1., True, {'state': self.state}
+                return self.state, -1.0, True, {"state": self.state}
             else:
-                raise error.Error('Unsupported illegal place action: {}'.format(self.illegal_place_mode))
+                raise error.Error(
+                    "Unsupported illegal place action: {}".format(
+                        self.illegal_place_mode
+                    )
+                )
         else:
             ReversiEnv.make_place(self.state, action, self.player_color)
 
@@ -132,26 +161,31 @@ class ReversiEnv(gym.Env):
             if ReversiEnv.pass_place(self.board_size, a):
                 pass
             elif ReversiEnv.resign_place(self.board_size, a):
-                return self.state, 1, True, {'state': self.state}
+                return self.state, 1, True, {"state": self.state}
             elif not ReversiEnv.valid_place(self.state, a, 1 - self.player_color):
-                if self.illegal_place_mode == 'raise':
+                if self.illegal_place_mode == "raise":
                     raise
-                elif self.illegal_place_mode == 'lose':
+                elif self.illegal_place_mode == "lose":
                     # Automatic loss on illegal place
                     self.done = True
-                    return self.state, 1., True, {'state': self.state}
+                    return self.state, 1.0, True, {"state": self.state}
                 else:
-                    raise error.Error('Unsupported illegal place action: {}'.format(self.illegal_place_mode))
+                    raise error.Error(
+                        "Unsupported illegal place action: {}".format(
+                            self.illegal_place_mode
+                        )
+                    )
             else:
                 ReversiEnv.make_place(self.state, a, 1 - self.player_color)
 
-
-        self.possible_actions = ReversiEnv.get_possible_actions(self.state, self.player_color)
+        self.possible_actions = ReversiEnv.get_possible_actions(
+            self.state, self.player_color
+        )
         reward = ReversiEnv.game_finished(self.state)
         if self.player_color == ReversiEnv.WHITE:
-            reward = - reward
+            reward = -reward
         self.done = reward != 0
-        return self.state, reward, self.done, {'state': self.state}
+        return self.state, reward, self.done, {"state": self.state}
 
     # def _reset_opponent(self):
     #     if self.opponent == 'random':
@@ -159,35 +193,33 @@ class ReversiEnv(gym.Env):
     #     else:
     #         raise error.Error('Unrecognized opponent policy {}'.format(self.opponent))
 
-    def render(self, mode='human', close=False):
+    def render(self, mode="human", close=False):
         if close:
             return
         board = self.state
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
+        outfile = StringIO() if mode == "ansi" else sys.stdout
 
-        outfile.write(' ' * 7)
+        outfile.write(" " * 6)
         for j in range(board.shape[1]):
-            outfile.write(' ' +  str(j + 1) + '  | ')
-        outfile.write('\n')
-        outfile.write(' ' * 5)
-        outfile.write('-' * (board.shape[1] * 6 - 1))
-        outfile.write('\n')
+            outfile.write(" " + str(j + 1) + "  | ")
+        outfile.write("\n")
+        outfile.write(" " + "-" * (board.shape[1] * 7 - 1))
+        outfile.write("\n")
         for i in range(board.shape[1]):
-            outfile.write(' ' +  str(i + 1) + '  |')
+            outfile.write(" " + str(i + 1) + "  |")
             for j in range(board.shape[1]):
                 if board[2, i, j] == 1:
-                    outfile.write('  O  ')
+                    outfile.write("  O  ")
                 elif board[0, i, j] == 1:
-                    outfile.write('  B  ')
+                    outfile.write("  B  ")
                 else:
-                    outfile.write('  W  ')
-                outfile.write('|')
-            outfile.write('\n')
-            outfile.write(' ' )
-            outfile.write('-' * (board.shape[1] * 7 - 1))
-            outfile.write('\n')
+                    outfile.write("  W  ")
+                outfile.write("|")
+            outfile.write("\n")
+            outfile.write(" " + "-" * (board.shape[1] * 7 - 1))
+            outfile.write("\n")
 
-        if mode != 'human':
+        if mode != "human":
             return outfile
 
     # @staticmethod
@@ -196,71 +228,71 @@ class ReversiEnv(gym.Env):
 
     @staticmethod
     def resign_place(board_size, action):
-        return action == board_size ** 2
+        return action == board_size**2
 
     @staticmethod
     def pass_place(board_size, action):
-        return action == board_size ** 2 + 1
+        return action == board_size**2 + 1
 
     @staticmethod
     def get_possible_actions(board, player_color):
-        actions=[]
+        actions = []
         d = board.shape[-1]
         opponent_color = 1 - player_color
         for pos_x in range(d):
             for pos_y in range(d):
-                if (board[2, pos_x, pos_y]==0):
+                if board[2, pos_x, pos_y] == 0:
                     continue
                 for dx in [-1, 0, 1]:
                     for dy in [-1, 0, 1]:
-                        if(dx == 0 and dy == 0):
+                        if dx == 0 and dy == 0:
                             continue
                         nx = pos_x + dx
                         ny = pos_y + dy
                         n = 0
-                        if (nx not in range(d) or ny not in range(d)):
+                        if nx not in range(d) or ny not in range(d):
                             continue
-                        while(board[opponent_color, nx, ny] == 1):
+                        while board[opponent_color, nx, ny] == 1:
                             tmp_nx = nx + dx
                             tmp_ny = ny + dy
-                            if (tmp_nx not in range(d) or tmp_ny not in range(d)):
+                            if tmp_nx not in range(d) or tmp_ny not in range(d):
                                 break
                             n += 1
                             nx += dx
                             ny += dy
-                        if(n > 0 and board[player_color, nx, ny] == 1):
+                        if n > 0 and board[player_color, nx, ny] == 1:
                             actions.append(pos_x * d + pos_y)
-        if len(actions)==0:
+        if len(actions) == 0:
             actions = [d**2 + 1]
         return actions
 
     @staticmethod
     def valid_reverse_opponent(board, coords, player_color):
-        '''
+        """
         check whether there is any reversible places
-        '''
+        """
         d = board.shape[-1]
         opponent_color = 1 - player_color
         pos_x = coords[0]
         pos_y = coords[1]
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
-                if(dx == 0 and dy == 0):
+                if dx == 0 and dy == 0:
                     continue
                 nx = pos_x + dx
                 ny = pos_y + dy
                 n = 0
-                if (nx not in range(d) or ny not in range(d)):
+                if nx not in range(d) or ny not in range(d):
                     continue
-                while(board[opponent_color, nx, ny] == 1):
+                while board[opponent_color, nx, ny] == 1:
                     tmp_nx = nx + dx
                     tmp_ny = ny + dy
-                    if (tmp_nx not in range(d) or tmp_ny not in range(d)):
+                    if tmp_nx not in range(d) or tmp_ny not in range(d):
                         break
                     n += 1
                     nx += dx
                     ny += dy
-                if(n > 0 and board[player_color, nx, ny] == 1):
+                if n > 0 and board[player_color, nx, ny] == 1:
                     return True
         return False
 
@@ -288,25 +320,25 @@ class ReversiEnv(gym.Env):
 
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
-                if(dx == 0 and dy == 0):
+                if dx == 0 and dy == 0:
                     continue
                 nx = pos_x + dx
                 ny = pos_y + dy
                 n = 0
-                if (nx not in range(d) or ny not in range(d)):
+                if nx not in range(d) or ny not in range(d):
                     continue
-                while(board[opponent_color, nx, ny] == 1):
+                while board[opponent_color, nx, ny] == 1:
                     tmp_nx = nx + dx
                     tmp_ny = ny + dy
-                    if (tmp_nx not in range(d) or tmp_ny not in range(d)):
+                    if tmp_nx not in range(d) or tmp_ny not in range(d):
                         break
                     n += 1
                     nx += dx
                     ny += dy
-                if(n > 0 and board[player_color, nx, ny] == 1):
+                if n > 0 and board[player_color, nx, ny] == 1:
                     nx = pos_x + dx
                     ny = pos_y + dy
-                    while(board[opponent_color, nx, ny] == 1):
+                    while board[opponent_color, nx, ny] == 1:
                         board[2, nx, ny] = 0
                         board[player_color, nx, ny] = 1
                         board[opponent_color, nx, ny] = 0
@@ -341,9 +373,9 @@ class ReversiEnv(gym.Env):
         else:
             free_x, free_y = np.where(board[2, :, :] == 1)
             if free_x.size == 0:
-                if player_score > (d**2)/2:
+                if player_score > (d**2) / 2:
                     return 1
-                elif player_score == (d**2)/2:
+                elif player_score == (d**2) / 2:
                     return 1
                 else:
                     return -1
