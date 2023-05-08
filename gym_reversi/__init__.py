@@ -1,5 +1,4 @@
-from .register import register
-from .register import retrieve_gym_id
+from .register import register, retrieve_gym_id
 from .reversi import ReversiEnv
 
 # Register 8x8 environment by default.
