@@ -17,7 +17,12 @@ def make_random_policy(np_random):
         possible_places = ReversiEnv.get_possible_actions(state, player_color)
         # No places left
         if len(possible_places) == 0:
-            return d**2 + 1
+            board_size = state.shape[1]
+            # resign
+            return board_size**2
+            # pass
+            return board_size**2 + 1
+        a = np_random.integers(len(possible_places))
         a = np_random.randint(len(possible_places))
         return possible_places[a]
 
@@ -195,12 +200,11 @@ class ReversiEnv(gym.Env):
         board = self.state
         outfile = StringIO() if mode == "ansi" else sys.stdout
 
-        outfile.write(" " * 7)
+        outfile.write(" " * 6)
         for j in range(board.shape[1]):
             outfile.write(" " + str(j + 1) + "  | ")
         outfile.write("\n")
-        outfile.write(" " * 5)
-        outfile.write("-" * (board.shape[1] * 6 - 1))
+        outfile.write(" " + "-" * (board.shape[1] * 7 - 1))
         outfile.write("\n")
         for i in range(board.shape[1]):
             outfile.write(" " + str(i + 1) + "  |")
@@ -213,8 +217,7 @@ class ReversiEnv(gym.Env):
                     outfile.write("  W  ")
                 outfile.write("|")
             outfile.write("\n")
-            outfile.write(" ")
-            outfile.write("-" * (board.shape[1] * 7 - 1))
+            outfile.write(" " + "-" * (board.shape[1] * 7 - 1))
             outfile.write("\n")
 
         if mode != "human":
