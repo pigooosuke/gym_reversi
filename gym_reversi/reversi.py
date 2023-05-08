@@ -23,7 +23,6 @@ def make_random_policy(np_random):
             # pass
             return board_size**2 + 1
         a = np_random.integers(len(possible_places))
-        a = np_random.randint(len(possible_places))
         return possible_places[a]
 
     return random_policy
