@@ -13,7 +13,7 @@ from gymnasium.utils import seeding
 
 def make_random_policy(np_random):
     def random_policy(state, player_color):
-        possible_places = ReversiEnv.get_possible_actions(state, player_color)
+        possible_places = ReversiEnv.get_legal_moves(state, player_color)
         # No places left
         if len(possible_places) == 0:
             board_size = state.shape[1]
@@ -34,10 +34,15 @@ class ReversiEnv(gym.Env):
 
     BLACK = 0
     WHITE = 1
-    metadata = {"render.modes": ["ansi", "human"]}
+    metadata = {"render_modes": ["ansi", "human"]}
 
     def __init__(
-        self, player_color, opponent, observation_type, illegal_place_mode, board_size
+        self,
+        player_color,
+        opponent,
+        observation_type,
+        illegal_place_mode,
+        board_size,
     ):
         """
         Args:
@@ -80,7 +85,7 @@ class ReversiEnv(gym.Env):
 
         # One action for each board position and resign and pass
         self.action_space = spaces.Discrete(self.board_size**2 + 2)
-        observation = self.reset()
+        observation, _ = self.reset()
         self.observation_space = spaces.Box(
             np.zeros(observation.shape), np.ones(observation.shape)
         )
@@ -103,9 +108,10 @@ class ReversiEnv(gym.Env):
 
         return [seed]
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
+        self.seed(seed=seed)
         # init board setting
-        self.state = np.zeros((3, self.board_size, self.board_size))
+        self.state = np.zeros((3, self.board_size, self.board_size), dtype=np.float32)
         centerL = int(self.board_size / 2 - 1)
         centerR = int(self.board_size / 2)
         self.state[2, :, :] = 1.0
@@ -115,9 +121,6 @@ class ReversiEnv(gym.Env):
         self.state[1, centerL, centerL] = 1
         self.state[1, centerR, centerR] = 1
         self.to_play = ReversiEnv.BLACK
-        self.possible_actions = ReversiEnv.get_possible_actions(
-            self.state, self.to_play
-        )
         self.done = False
 
         # Let the opponent play if it's not the agent's turn
@@ -125,17 +128,27 @@ class ReversiEnv(gym.Env):
             a = self.opponent_policy(self.state)
             ReversiEnv.make_place(self.state, a, ReversiEnv.BLACK)
             self.to_play = ReversiEnv.WHITE
-        return self.state
+        return self.state, self.get_info()
 
     def step(self, action):
         assert self.to_play == self.player_color
         # If already terminal, then don't do anything
         if self.done:
-            return self.state, 0.0, True, {"state": self.state}
+            return (
+                self.state,
+                0.0,
+                True,
+                self.get_info(),
+            )
         if ReversiEnv.pass_place(self.board_size, action):
             pass
         elif ReversiEnv.resign_place(self.board_size, action):
-            return self.state, -1, True, {"state": self.state}
+            return (
+                self.state,
+                -1,
+                True,
+                self.get_info(),
+            )
         elif not ReversiEnv.valid_place(self.state, action, self.player_color):
             if self.illegal_place_mode == "raise":
                 raise
@@ -160,7 +173,12 @@ class ReversiEnv(gym.Env):
             if ReversiEnv.pass_place(self.board_size, a):
                 pass
             elif ReversiEnv.resign_place(self.board_size, a):
-                return self.state, 1, True, {"state": self.state}
+                return (
+                    self.state,
+                    1,
+                    True,
+                    self.get_info(),
+                )
             elif not ReversiEnv.valid_place(self.state, a, 1 - self.player_color):
                 if self.illegal_place_mode == "raise":
                     raise
@@ -177,14 +195,18 @@ class ReversiEnv(gym.Env):
             else:
                 ReversiEnv.make_place(self.state, a, 1 - self.player_color)
 
-        self.possible_actions = ReversiEnv.get_possible_actions(
-            self.state, self.player_color
-        )
+        self.legal_moves = ReversiEnv.get_legal_moves(self.state, self.player_color)
         reward = ReversiEnv.game_finished(self.state)
         if self.player_color == ReversiEnv.WHITE:
             reward = -reward
         self.done = reward != 0
-        return self.state, reward, self.done, {"state": self.state}
+        return (
+            self.state,
+            reward,
+            self.done,
+            False,
+            self.get_info(),
+        )
 
     # def _reset_opponent(self):
     #     if self.opponent == 'random':
@@ -218,6 +240,13 @@ class ReversiEnv(gym.Env):
         if mode != "human":
             return outfile
 
+    def get_info(self):
+        return {
+            "state": self.state,
+            "board_size": self.board_size,
+            "legal_moves": ReversiEnv.get_legal_moves(self.state, self.to_play),
+        }
+
     # @staticmethod
     # def pass_place(board_size, action):
     #     return action == board_size ** 2
@@ -231,7 +260,7 @@ class ReversiEnv(gym.Env):
         return action == board_size**2 + 1
 
     @staticmethod
-    def get_possible_actions(board, player_color):
+    def get_legal_moves(board, player_color):
         actions = []
         d = board.shape[-1]
         opponent_color = 1 - player_color
