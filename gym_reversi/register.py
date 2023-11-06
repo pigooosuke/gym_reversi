@@ -1,4 +1,4 @@
-from gym.envs.registration import register as gym_register
+from gymnasium.envs.registration import register as gym_register
 
 
 def retrieve_gym_id(board_size: int) -> str:

@@ -2,14 +2,13 @@
 Game of Reversi
 """
 
-from io import StringIO
 import sys
+from io import StringIO
 
-import gym
-from gym import spaces
+import gymnasium as gym
 import numpy as np
-from gym import error
-from gym.utils import seeding
+from gymnasium import error, spaces
+from gymnasium.utils import seeding
 
 
 def make_random_policy(np_random):
@@ -199,24 +198,21 @@ class ReversiEnv(gym.Env):
         board = self.state
         outfile = StringIO() if mode == "ansi" else sys.stdout
 
-        outfile.write(" " * 6)
+        outfile.write(" ")
         for j in range(board.shape[1]):
-            outfile.write(" " + str(j + 1) + "  | ")
+            outfile.write(" " + chr(j + ord("A")))
         outfile.write("\n")
-        outfile.write(" " + "-" * (board.shape[1] * 7 - 1))
-        outfile.write("\n")
+
         for i in range(board.shape[1]):
-            outfile.write(" " + str(i + 1) + "  |")
+            outfile.write(str(i))
             for j in range(board.shape[1]):
+                outfile.write(" ")
                 if board[2, i, j] == 1:
-                    outfile.write("  O  ")
+                    outfile.write(".")
                 elif board[0, i, j] == 1:
-                    outfile.write("  B  ")
+                    outfile.write("X")
                 else:
-                    outfile.write("  W  ")
-                outfile.write("|")
-            outfile.write("\n")
-            outfile.write(" " + "-" * (board.shape[1] * 7 - 1))
+                    outfile.write("O")
             outfile.write("\n")
 
         if mode != "human":

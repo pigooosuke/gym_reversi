@@ -1,5 +1,5 @@
 """Test the register module."""
-import gym
+import gymnasium as gym
 from gym_reversi.register import register
 from gym_reversi.register import retrieve_gym_id
 
